@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>대사증후군 정밀 진단 리포트</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React & ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel CDN for inline JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      background-color: #020617;
+      margin: 0;
+      padding: 0;
+      color: white;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: none;
+    }
+
+    /* 시스템 모바일 브라우저나 인앱 브라우저에서 스크롤 바운싱 제어 */
+    html {
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Activity = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+    );
+    const ArrowLeft = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    );
+    const RefreshCw = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+    );
+    const Download = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    );
+    const ChevronRight = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"></polyline></svg>
+    );
+    const ShieldCheck = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+    );
+    const CheckCircle2 = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+    );
+    const UserCircle = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="10" r="3"></circle><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"></path></svg>
+    );
+    const XIcon = ({ size = 24, className = "", strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    );
+
+    const globalStyles = `
+      @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
+      @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @keyframes pulse-soft { 0%, 100% { transform: scale(1); opacity: 1; filter: brightness(1); } 50% { transform: scale(1.05); opacity: 0.9; filter: brightness(1.2); } }
+      @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-spin-slow { animation: spin-slow 15s linear infinite; }
+      .animate-pulse-soft { animation: pulse-soft 4s ease-in-out infinite; }
+      .animate-slide-up { animation: slide-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+
+      .glass-card-dark {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+      }
+      
+      .btn-choice { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+      
+      /* 스크롤바 감추기 (앱같은 깔끔함) */
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* 모바일 안심 터치 영역 보장 */
+      button, a { -webkit-tap-highlight-color: transparent; }
+    `;
+
+    const quizImages = [
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f35a.svg", // 1. 밥 (Rice)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f963.svg", // 2. 시리얼/보울 (Bowl)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f964.svg", // 3. 달콤한 음료 (Cup with straw)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f34e.svg", // 4. 과일 (Red Apple)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f35c.svg", // 5. 면/단일메뉴 (Noodles)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f370.svg", // 6. 디저트 (Cake)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f680.svg", // 7. 식사 빠름 (Rocket)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f369.svg", // 8. 가짜 배고픔 (Doughnut)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f634.svg", // 9. 식곤증 (Sleeping Face)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f9e0.svg", // 10. 브레인포그 (Brain)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f976.svg", // 11. 덜덜/식은땀 (Cold Face)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f971.svg", // 12. 만성피로 (Yawning)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f4a3.svg", // 13. 복부비만 (Bomb)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f9ec.svg", // 14. 쥐젖/DNA (DNA)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f4a4.svg", // 15. 바로 눕기 (Zzz)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f319.svg", // 16. 야식 (Moon)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f92f.svg", // 17. 스트레스 (Exploding Head)
+      "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1fa80.svg"  // 18. 요요현상 (Yo-Yo)
+    ];
+
+    const introImage = "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f496.svg"; // Sparkling Heart
+    const ageImage = "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/emoji_u1f465.svg";   // Busts in Silhouette
+
+    const App = () => {
+      const [step, setStep] = useState('intro');
+      const [ageGroup, setAgeGroup] = useState(null);
+      const [currentIdx, setCurrentIdx] = useState(0);
+      const [selectedAnswers, setSelectedAnswers] = useState([]);
+      const [isTransitioning, setIsTransitioning] = useState(false);
+      const [selectedBtn, setSelectedBtn] = useState(null);
+      const [isDownloading, setIsDownloading] = useState(false);
+
+      // 인앱 브라우저(카톡 등)용 캡처 이미지 모달 띄우기 처리
+      const [capturedImageUrl, setCapturedImageUrl] = useState(null);
+
+      // 3D 이모지 선로딩 (끊김 방지)
+      useEffect(() => {
+        quizImages.forEach(src => {
+          const img = new Image(); img.src = src;
+        });
+        const img1 = new Image(); img1.src = introImage;
+        const img2 = new Image(); img2.src = ageImage;
+      }, []);
+
+      useEffect(() => {
+        if (!document.getElementById('html2canvas-script')) {
+          const script = document.createElement('script');
+          script.id = 'html2canvas-script';
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          script.async = true;
+          document.head.appendChild(script);
+        }
+      }, []);
+
+      const questions = [
+        { cat: 'A', text: "식사할 때 채소나 고기보다 밥, 빵, 면(탄수화물)부터 सबसे 먼저 손이 간다." },
+        { cat: 'A', text: "아침 첫 끼니로 시리얼, 과일주스, 달콤한 빵 등 당질 위주의 식사를 주로 한다." },
+        { cat: 'A', text: "콜라, 사이다, 믹스커피 등 액상과당이 들어간 달달한 음료를 매일 즐겨 마신다." },
+        { cat: 'A', text: "과일을 식후 디저트로 자주 먹거나, 갈아서 주스 형태로 한 번에 많은 양을 마신다." },
+        { cat: 'A', text: "떡볶이, 빵, 국수, 짜장면 등 탄수화물 위주의 단일 메뉴로 끼니를 때우는 경우가 잦다." },
+        { cat: 'B', text: "식사 직후 이미 배가 불러도 무언가 달콤한 디저트나 간식을 찾게 되는 습관이 있다." },
+        { cat: 'A', text: "음식을 충분히 씹지 않고 10~15분 이내로 식사를 매우 빠르게 마치는 편이다." },
+        { cat: 'B', text: "식사 후 1~2시간 만에 다시 허기(가짜 배고픔)가 심하게 지고 단 것이 강하게 당긴다." },
+        { cat: 'B', text: "식사 후 참을 수 없는 비정상적인 졸음(식곤증)이 쏟아져 업무나 학업에 지장을 준다." },
+        { cat: 'B', text: "식후나 늦은 오후에 머리가 멍해지고(브레인포그) 집중력과 판단력이 급격히 떨어진다." },
+        { cat: 'B', text: "식사를 건너뛰면 손 떨림, 심장 두근거림, 어지럼증, 식은땀, 극심한 짜증 등을 겪은 적이 있다." },
+        { cat: 'B', text: "수면 시간이 부족하지 않은데도, 자고 일어나면 개운하지 않고 만성적인 찌뿌둥함이 있다." },
+        { cat: 'C', text: "팔다리는 얇은데 유독 복부 중심(내장지방)에 살이 찌고, 다이어트를 해도 뱃살이 잘 안 빠진다." },
+        { cat: 'C', text: "목 뒤나 겨드랑이 피부가 거뭇하게 변색되거나(흑색극세포증), 쥐젖 같은 것들이 자주 생긴다." },
+        { cat: 'A', text: "식사를 마친 직후에 걷기 등 가벼운 움직임 없이 바로 소파나 침대에 눕는 편이다." },
+        { cat: 'C', text: "밤늦게 야식을 자주 섭취하거나, 저녁 식사 후 다음날 아침까지(공복 시간)가 12시간 미만이다." },
+        { cat: 'B', text: "스트레스를 심하게 받으면 달거나 짜고 자극적인 음식(탄수화물 폭식)으로 기분을 푼다." },
+        { cat: 'C', text: "과거에 무리하게 굶거나 극단적으로 적게 먹는 다이어트를 반복해 심한 요요 현상을 겪었다." }
+      ];
+
+      const handleAgeSelect = (group) => { setAgeGroup(group); setStep('quiz'); };
+
+      const handleAnswer = (isYes) => {
+        if (isTransitioning) return;
+        setSelectedBtn(isYes ? 'yes' : 'no');
+        setIsTransitioning(true);
+        if (isYes) setSelectedAnswers(prev => [...prev, currentIdx]);
+
+        setTimeout(() => {
+          if (currentIdx < questions.length - 1) {
+            setCurrentIdx(prev => prev + 1);
+            setSelectedBtn(null);
+            setIsTransitioning(false);
+          } else {
+            setStep('analyzing');
+            setTimeout(() => { setStep('result'); setSelectedBtn(null); setIsTransitioning(false); }, 3000); // 3초의 웅장한 로딩
+          }
+        }, 500); // 모바일에 더 빠르고 쾌적한 반응성 도입 0.6s -> 0.5s
+      };
+
+      const goBack = () => {
+        if (currentIdx > 0 && !isTransitioning) {
+          setCurrentIdx(prev => prev - 1);
+          setSelectedAnswers(prev => prev.filter(idx => idx !== currentIdx - 1));
+        }
+      };
+
+      const resetQuiz = () => { setStep('intro'); setAgeGroup(null); setCurrentIdx(0); setSelectedAnswers([]); };
+
+      const captureAndDownload = async () => {
+        if (!window.html2canvas) {
+          alert("저장 모듈을 불러오고 있습니다. 잠시 후 다시 시도해주세요.");
+          return;
+        }
+        setIsDownloading(true);
+
+        // 브라우저 환경 체킹 (카카오톡, 네이버, 인스타그램 등 인앱 브라우저 여부)
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isInApp = /KAKAOTALK|Instagram|NAVER|Line/i.test(userAgent);
+
+        try {
+          const element = document.getElementById('capture-area');
+          const canvas = await window.html2canvas(element, {
+            scale: window.devicePixelRatio > 1 ? window.devicePixelRatio : 2, // 고해상도 지원
+            backgroundColor: '#020617', // 깨짐 방지
+            useCORS: true,
+            logging: false,
+            windowWidth: element.scrollWidth,
+            windowHeight: element.scrollHeight
+          });
+
+          const dataUrl = canvas.toDataURL('image/png');
+
+          if (isInApp || /iPhone|iPad|iPod/i.test(userAgent)) {
+            // iOS 또는 인앱 브라우저의 경우 다운로드가 막혀있으므로 이미지를 팝업으로 띄워 꾹 눌러 저장하도록 유도
+            setCapturedImageUrl(dataUrl);
+          } else {
+            // 일반 크롬, 삼성인터넷, 안드로이드의 경우 바로 다운로드 실행
+            const link = document.createElement('a');
+            link.download = `대사건강리포트_${new Date().getTime()}.png`;
+            link.href = dataUrl;
+            link.click();
+            alert("이미지가 앨범에 성공적으로 다운로드되었습니다.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("알 수 없는 오류로 자동 저장이 차단되었습니다.\n화면을 직접 캡처하여 소장해 주세요.");
+        } finally {
+          setIsDownloading(false);
+        }
+      };
+
+      // 좀 더 의학적으로 정확하고 정돈된 톤앤매너 카피라이팅 작성
+      const getPersonalizedTips = (stageNum, ageGrp) => {
+        if (stageNum === 3) {
+          if (ageGrp === '2030') return ["[식단구조 개편] 식이섬유 → 단백질 → 탄수화물 순으로 섭취", "[식후 동선 개선] 식사 시작 15분 후 무조건 일어나 가벼운 산책", "[액상과당 차단] 마라탕, 탕후루, 시럽 커피 완전 차단 연습 시작", "[공복시간 확보] 저녁 8시 이후 완전 금식 유지 (최소 14시간 공복)", "[정밀검사 권고] 가까운 내과 방문하여 인슐린 및 당화혈색소 검사 요망"];
+          if (ageGrp === '4050') return ["[정제탄수 회피] 흰쌀밥, 흰빵, 밀가루 면 섭취량을 현재의 절반으로 축소", "[혈당스파이크 억제] 식후 눕는 습관 버리고 20분 이상 동네 걷기 생활화", "[디저트 교체] 식후 과일이나 커피믹스 등 혈당을 튀게하는 습관 즉각 중단", "[야간 공복 확보] 야식 완전 차단 및 저녁 식후 다음날 아침까지 12-14시간 공복", "[정기 검진] 단순 체중 감량이 아닌 당뇨 전단계 여부 등 대사 검사 필수"];
+          if (ageGrp === '60+') return ["[단백질 재배치] 매 끼니 두부, 생선, 살코기 등 질 좋은 단백질 반찬 필수 배치", "[혈당 강하 훈련] 식사 후 무리한 운동 대신 집안에서 제자리걸음 15분하기", "[당질 제한] 과일은 즙이나 주스 대신 껍질째 식후 1~2쪽만 작게 베어 먹기", "[규칙적인 식습관] 갑작스런 단식은 몸에 무리를 주니 정해진 시간에 소식하기", "[정기 추적 검사] 보건소나 내과에서 정기적으로 공복/식후 혈당 체크 필수"];
+        }
+        if (stageNum === 2) {
+          if (ageGrp === '2030') return ["[혈당 방어막 형성] 채소와 단백질을 절반 이상 먹은 후, 밥을 마지막에 먹기", "[식후 부동자세 금지] 점심 직후 자리에 돌아오지 말고 주변 가볍게 10분 돌기", "[달콤함 차단] 단 맛 나는 음료 대신 아메리카노, 탄산수, 녹차로 전면 교체", "[가짜 포만감 구별] 당류가 당길 때 단것 대신 물 한 컵 마시며 10분 참기", "[호르몬 안정화] 밤늦게 불 끄고 스마트폰 보는 습관 버리고 충분한 숙면 취하기"];
+          if (ageGrp === '4050') return ["[식이섬유 선행] 테이블에서 나물, 샐러드 등 채소 반찬부터 가장 먼저 비우기", "[식사 직후 활동] 저녁 식사를 끝내자마자 바로 숟가락 내려놓고 15분 이상 걷기", "[악성 간식 중단] 떡, 빵, 아이스크림 디저트 대신 방울토마토나 견과류 한 줌", "[비상간식 배치] 출출하고 허기질 때 라면 대신 구운 계란이나 두유 마시기", "[지표 관리] 복부비만(내장지방) 감소를 위한 현실적인 2~3kg 식단 감량 목표"];
+          if (ageGrp === '60+') return ["[단백질 사수] 식사하실 때 식물성/동물성 단백질 반찬을 꼭꼭 30회 이상 씹어먹기", "[혈당스파이크 예방] 식사 완료 후 눕기 금지, 소화시킬 겸 가벼운 집안일 시작하기", "[숨은 당 찾기] 습관처럼 타먹는 믹스커피와 달달한 사탕 섭취 서서히 줄여나가기", "[생활 속 근육] 무릎에 무리가지 않게 평지 걷기나 층계참 오르기로 하체 근육 기르기", "[혈당 자가 관리] 가정용 혈당기가 있다면 아침 기상 시 공복 혈당 수치 체크 확인"];
+        }
+        if (stageNum === 1) {
+          if (ageGrp === '2030') return ["[속도 조절] 음식을 천천히 씹어 최소 15~20분 동안 포만감 느끼며 식사하기", "[균형 식단] 떡볶이, 빵 등 단일 면/밀가루 메뉴 피하고 계란이나 고기 추가하기", "[건강한 아침] 당류가 높은 시리얼 대신 통밀빵이나 무가당 요거트 교체", "[생활 밀착 운동] 지하철 에스컬레이터나 아파트 엘리베이터 대신 계단 걷기", "[스트레스 관리] 스트레스를 받았을 때 맵고 단 배달 음식으로 해결하지 않기"];
+          if (ageGrp === '4050') return ["[여유 있는 식사] 급하게 식사하는 식습관 고치고 모든 음식을 완전히 씹어 삼키기", "[염분 및 당질 제한] 찌개, 국 먹을 때 밥을 한 번에 다 말지 말고 국물은 남기기", "[아침의 변화] 가벼운 아침 빵 대신 두부 샐러드나 삶은 달걀로 단백질 보급", "[활동량 증가] 출퇴근 시 한 정거장 미리 내려서 걷는 시간 확보 장려", "[간 건강 챙기기] 잦은 야근이나 회식을 줄여 피곤해진 간의 대사 해독 부담 덜기"];
+          if (ageGrp === '60+') return ["[꼭꼭 씹는 습관] 소화액이 충분히 섞이도록 모든 음식을 삼키기 전 충분히 씹기", "[탄수화물 대체] 흰쌀밥 비중을 줄이고 콩, 보리가 섞인 잡곡밥으로 바꾸어 식사", "[간식 절제] 식간에 떡, 고구마 등 탄수화물로 이루어진 배부른 간식 자제하기", "[낮 산책] 해가 떠 있는 낮 시간에 하루 30분 이상 동네 햇볕 쬐며 산책하기", "[수분 보충] 한꺼번에 마시지 말고 미지근한 물을 하루 5잔 이상 천천히 나누어 마시기"];
+        }
+        return ["[루틴 유지] 훌륭한 현재의 채소/단백질 비율 식습관을 지속적으로 유지", "[유산소/근력 병행] 주 3~4회 이상 일정한 패턴의 유산소 및 근력 운동 병행", "[마인드 컨트롤] 스트레스 상황에서 당분에 의존하지 않게 현재 루틴 방어", "[지속적인 관찰] 현재의 체지방률, 체중, 허리둘레 수치가 급증하지 않도록 관찰", "[예방적 차원] 내성이 강한 단계이므로 1~2년에 1회 정기 건강검진 통해 최종 점검"];
+      };
+
+      const getStageResult = () => {
+        const countA = selectedAnswers.filter(idx => questions[idx].cat === 'A').length;
+        const countB = selectedAnswers.filter(idx => questions[idx].cat === 'B').length;
+        const countC = selectedAnswers.filter(idx => questions[idx].cat === 'C').length;
+
+        let stageInfo = {};
+        if (countC >= 1) {
+          stageInfo = { stageNum: 3, label: 'Stage 3 (위험)', title: '심각한 대사 불균형 (위험)', desc: '현재 대사 엔진이 심각하게 정체되어 있는 상태입니다. 섭취한 탄수화물이 에너지로 쓰이지 못하고 인슐린 과부하를 일으켜, 체내에 염증과 중성지방의 형태로만 즉각 퇴적되는 치명적 체질로 변했습니다. 즉각적인 식단 통제 및 정밀 검사가 필요합니다.', color: 'text-rose-400', fill: 'bg-rose-500', bar: 'bg-rose-500', bgCard: 'bg-rose-500/10 border-rose-500/30' };
+        } else if (countB >= 2) {
+          stageInfo = { stageNum: 2, label: 'Stage 2 (경고)', title: '대사 유연성 붕괴 시작 (경고)', desc: '뇌 시스템이 단당류와 정제 당분에 심취하여 인위적인 혈당 롤러코스터 사이클에 탑승했습니다. 반복되는 식곤증, 가짜 배고픔, 집중력 저하는 몸이 보내는 적신호입니다. 늦기 전에 대사 악순환의 고리를 끊어내야 합니다.', color: 'text-orange-400', fill: 'bg-orange-500', bar: 'bg-orange-500', bgCard: 'bg-orange-500/10 border-orange-500/30' };
+        } else if (countA >= 3 || countB === 1) {
+          stageInfo = { stageNum: 1, label: 'Stage 1 (주의)', title: '인슐린 저항성 의심 (주의)', desc: '아직 표면상으로 드러나는 극심한 질환은 없지만, 잘못된 식습관의 누적으로 언제 터질지 모르는 폭탄처럼 인슐린 호르몬이 과다 분비되며 혈관의 피로도가 증가하고 있습니다. 치명적인 단계로 진입하기 전 선제적 방어가 필요합니다.', color: 'text-blue-400', fill: 'bg-blue-500', bar: 'bg-blue-500', bgCard: 'bg-blue-500/10 border-blue-500/30' };
+        } else {
+          stageInfo = { stageNum: 0, label: '안전 (우수)', title: '최적의 대사 상태 (안전)', desc: '매우 인상적이고 훌륭한 상태입니다! 식후 혈당의 스파이크 요동 없이 섭취한 에너지를 체내에서 완전히 안정적으로 소모하면서, 세포 방어선 장악 및 대사 유연성을 완벽하게 통제하고 있습니다.', color: 'text-emerald-400', fill: 'bg-emerald-500', bar: 'bg-emerald-500', bgCard: 'bg-emerald-500/10 border-emerald-500/30' };
+        }
+        stageInfo.tips = getPersonalizedTips(stageInfo.stageNum, ageGroup);
+        return stageInfo;
+      };
+
+      const result = step === 'result' ? getStageResult() : null;
+      let activeImage = "";
+      if (step === 'intro') activeImage = introImage;
+      else if (step === 'ageSelect') activeImage = ageImage;
+      else if (step === 'quiz') activeImage = quizImages[currentIdx];
+
+      return (
+        <React.Fragment>
+          <style>{globalStyles}</style>
+
+          <div className="min-h-[100dvh] bg-[#020617] flex justify-center font-sans tracking-tight overscroll-none hide-scrollbar">
+
+            <div className="w-full max-w-[440px] h-[100dvh] md:h-auto md:min-h-screen relative flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-y-auto overflow-x-hidden hide-scrollbar">
+
+              {/* 심미적 그라데이션 오로라 흩뿌림 배경 (다이나믹한 3D 클립아트를 강조하기 위해)  */}
+              <div className="absolute inset-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                <div className="absolute top-[-100px] right-[-100px] w-[350px] h-[350px] bg-indigo-600/15 rounded-full blur-[100px] animate-pulse-soft"></div>
+                <div className="absolute bottom-[20%] left-[-150px] w-[450px] h-[450px] bg-emerald-600/10 rounded-full blur-[120px] animate-float"></div>
+                <div className="absolute top-[40%] left-[20%] w-[250px] h-[250px] bg-blue-500/10 rounded-full blur-[80px] animate-spin-slow"></div>
+              </div>
+
+              {/* --- 1. INTRO SCREEN --- */}
+              {step === 'intro' && (
+                <div className="flex flex-col h-full bg-transparent animate-slide-up z-10 px-6 sm:px-8 py-10 relative">
+                  <div className="flex justify-center flex-1  flex-col mt-16 sm:mt-20 text-center">
+
+                    {/* 프리미엄 3D 이모지 중앙 배치 */}
+                    <div className="relative flex justify-center w-full mb-10 animate-float">
+                      {/* 빛 스며드는 효과 */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 bg-emerald-500/20 rounded-full blur-[40px]"></div>
+                      <img src={activeImage} alt="Intro 3D heart" className="w-36 h-36 object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] relative z-10" />
+                    </div>
+
+                    <h1 className="text-[2.8rem] sm:text-[3.2rem] font-black tracking-tighter leading-[1.15] text-white drop-shadow-2xl">
+                      대사 증후군<br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-blue-400">당신의 단계는?</span>
+                    </h1>
+                    <p className="mt-7 text-slate-300 text-[1.05rem] sm:text-[1.15rem] leading-[1.7] break-keep font-medium">
+                      고해상도 다이나믹 알고리즘으로<br />나의 침묵하는 살인자 <b className="text-white text-[1.1rem] bg-indigo-500/30 px-2 py-0.5 rounded-lg border border-indigo-500/50">인슐린 저항성</b>을<br />정밀 분석하여 1분 만에 시각화합니다.
+                    </p>
+                  </div>
+
+                  <div className="w-full mt-auto mb-2 flex flex-col items-center">
+                    <button onClick={() => setStep('ageSelect')} className="w-full bg-white text-[#0f172a] rounded-[2rem] h-[64px] text-[1.2rem] sm:text-[1.3rem] font-black flex items-center justify-center gap-3 active:scale-[0.97] transition-all shadow-[0_0_50px_rgba(255,255,255,0.25)]">
+                      정밀 진단 시작하기 <ChevronRight size={22} className="text-[#0f172a]" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* --- 2. AGE SELECT SCREEN --- */}
+              {step === 'ageSelect' && (
+                <div className="flex flex-col h-full bg-transparent px-6 sm:px-8 py-10 animate-slide-up z-10 relative">
+                  <div className="flex flex-col items-start mt-6 mb-8">
+                    <button onClick={resetQuiz} className="text-slate-300 mb-6 w-12 h-12 flex items-center justify-center -ml-2 hover:bg-white/10 transition-colors bg-white/5 rounded-full border border-white/10 active:scale-95"><ArrowLeft size={24} /></button>
+
+                    <div className="w-full flex items-center justify-between mb-2">
+                      <p className="text-emerald-400 font-bold uppercase tracking-widest text-[12px] sm:text-sm drop-shadow-md">Step 01. Targeting</p>
+                      <img src={activeImage} alt="Age 3D" className="w-[60px] h-[60px] drop-shadow-md animate-float" />
+                    </div>
+
+                    <h2 className="text-[1.8rem] sm:text-[2.2rem] font-black text-white leading-tight tracking-tight drop-shadow-xl">
+                      초정밀 솔루션 제공을 위해<br />연령대를 선택하세요.
+                    </h2>
+                  </div>
+                  <div className="space-y-4 w-full mt-auto mb-4">
+                    {['2030', '4050', '60+'].map((age, idx) => (
+                      <button key={idx} onClick={() => handleAgeSelect(age)} className="w-full glass-card-dark rounded-3xl h-[84px] flex items-center px-6 transition-all active:scale-[0.97] border border-white/20 shadow-2xl">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mr-5 border border-emerald-500/30">
+                          <UserCircle className="text-emerald-400" size={26} />
+                        </div>
+                        <span className="text-[1.2rem] sm:text-[1.3rem] font-black text-white tracking-wide">{age === '60+' ? '60대 이상 시니어' : `${age.substring(0, 2)}대 ~ ${age.substring(2, 4)}대`}</span>
+                        <ChevronRight className="text-emerald-400/50 mt-1 ml-auto" size={22} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* --- 3. QUIZ SCREEN --- */}
+              {step === 'quiz' && (
+                <div className="flex flex-col h-full bg-transparent z-10 pt-10 pb-6 relative px-5">
+                  {/* 프로그레스 영역 */}
+                  <div className="w-full flex items-center justify-between mb-4 relative z-20">
+                    <button onClick={goBack} className={`w-11 h-11 text-slate-300 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors active:scale-95 ${currentIdx === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} disabled={currentIdx === 0}><ArrowLeft size={24} /></button>
+                    <div className="flex-1 px-4">
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-white/10">
+                        <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-400 rounded-full transition-all duration-300" style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <span className="text-emerald-400 font-black text-[15px] min-w-[3rem] text-center bg-black/40 rounded-full py-1 border border-white/10">{currentIdx + 1}</span>
+                  </div>
+
+                  {/* 3D 클립아트 영역 (중앙에 거대하게 배치) */}
+                  <div className={`mt-2 flex-1 flex flex-col items-center justify-center transition-all duration-400 ${isTransitioning ? 'opacity-0 scale-90 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}`}>
+                    <div className="relative w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] flex items-center justify-center">
+                      {/* 클립아트 뒤 광채 효과 */}
+                      <div className="absolute w-[180px] h-[180px] bg-emerald-500/15 rounded-full blur-[60px]"></div>
+                      <img src={activeImage} alt={`Quiz ${currentIdx} 3D Clipart`} className="w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] object-contain drop-shadow-[0_30px_50px_rgba(0,0,0,0.6)] animate-float relative z-10" />
+                    </div>
+                  </div>
+
+                  {/* 텍스트 내용 박스 */}
+                  <div className={`w-full glass-card-dark px-6 py-6 sm:px-8 sm:py-8 min-h-[140px] flex flex-col justify-center rounded-[2rem] border border-white/20 mb-5 transition-all duration-400 ${isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+                    <span className="text-emerald-400 font-bold text-[11px] uppercase tracking-[0.2em] mb-2 block">Analyze Data {currentIdx + 1}</span>
+                    <h2 className="text-[1.2rem] sm:text-[1.35rem] font-bold text-white leading-relaxed break-keep">
+                      {questions[currentIdx].text}
+                    </h2>
+                  </div>
+
+                  {/* 버튼 */}
+                  <div className={`grid grid-cols-2 gap-3 pb-safe transition-all duration-300 relative z-20`}>
+                    <button onClick={() => handleAnswer(false)} className={`btn-choice h-[76px] rounded-[1.4rem] border-[1.5px] flex flex-col items-center justify-center text-[1.1rem] sm:text-[1.2rem] font-black ${selectedBtn === 'no' ? 'border-indigo-500 bg-indigo-600/40 text-white scale-[0.96]' : 'border-white/10 glass-card-dark text-slate-300 active:scale-[0.98]'}`}>
+                      <span className="text-slate-500 text-[10px] font-bold mb-0.5 uppercase tracking-widest">No</span>
+                      아니오
+                    </button>
+                    <button onClick={() => handleAnswer(true)} className={`btn-choice h-[76px] rounded-[1.4rem] border-[1.5px] flex flex-col items-center justify-center text-[1.1rem] sm:text-[1.2rem] font-black ${selectedBtn === 'yes' ? 'border-emerald-500 bg-emerald-500/80 text-white scale-[0.96] shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 active:scale-[0.98]'}`}>
+                      <span className="text-emerald-500/60 text-[10px] font-bold mb-0.5 uppercase tracking-widest">Yes</span>
+                      예, 그렇다
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* --- 4. ANALYZING SCREEN --- */}
+              {step === 'analyzing' && (
+                <div className="flex flex-col h-full items-center justify-center px-6 text-center animate-slide-up z-10 bg-[#020617] absolute inset-0">
+                  <div className="absolute top-1/2 left-1/2 w-[280px] h-[280px] bg-blue-600/15 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
+
+                  <div className="relative w-36 h-36 mb-12 flex items-center justify-center">
+                    <div className="absolute inset-0 border-[3px] border-slate-800 border-dashed rounded-full animate-spin-slow"></div>
+                    <div className="absolute inset-0 border-[3px] border-t-emerald-400 border-r-blue-500 border-b-transparent border-l-transparent rounded-full animate-spin-slow" style={{ animationDuration: '1.2s' }}></div>
+                    <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center animate-pulse-soft border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                      <Activity size={36} className="text-emerald-400" />
+                    </div>
+                  </div>
+                  <h2 className="text-[2.2rem] font-black mb-5 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400 drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">데이터 추출 중</h2>
+                  <p className="text-slate-400 text-[1.05rem] leading-[1.6] break-keep font-medium">수집된 신체 식습관 라이프 데이터를<br />유사 질환 전문 데이터셋과 맵핑합니다.</p>
+                </div>
+              )}
+
+              {/* --- 5. RESULT SCREEN  --- */}
+              {step === 'result' && result && (
+                <div className="flex flex-col h-full bg-[#020617] relative animate-fade-in z-10 pb-28">
+
+                  <div id="capture-area" className="bg-[#020617] w-full pt-10 pb-12 px-1 relative overflow-hidden">
+                    {/* 캡처화면용 고유 배경 - 화려하지만 무겁지 않게 */}
+                    <div className="absolute top-[-50px] right-[-50px] w-72 h-72 bg-indigo-600/10 rounded-full blur-[80px] pointer-events-none"></div>
+                    <div className="absolute bottom-1/3 left-[-30px] w-56 h-56 bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none"></div>
+
+                    <div className="px-5 flex flex-col items-center mb-8 relative z-10">
+                      <div className="flex items-center justify-center w-full mb-8">
+                        <hr className="flex-1 border-slate-800" />
+                        <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 tracking-[0.25em] uppercase px-4 bg-slate-900 border border-slate-700/50 rounded-full py-1.5 flex items-center gap-2">
+                          <Activity size={12} className="text-emerald-500" /> REPORT MATRIX
+                        </span>
+                        <hr className="flex-1 border-slate-800" />
+                      </div>
+
+                      <div className={`px-5 py-2 rounded-full border border-slate-700/50 mb-5 flex items-center gap-2.5 ${result.bgCard} shadow-sm`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${result.bar} animate-pulse`}></div>
+                        <span className={`text-[1.1rem] sm:text-[1.2rem] font-black ${result.color} tracking-tight`}>
+                          {result.label}
+                        </span>
+                      </div>
+
+                      <h2 className="text-[2rem] sm:text-[2.3rem] font-black text-white text-center break-keep leading-[1.2] mb-10 tracking-tight drop-shadow-md px-2">
+                        {result.title}
+                      </h2>
+
+                      {/* 상태바 */}
+                      <div className="w-full bg-slate-900 h-2.5 sm:h-3 rounded-full overflow-hidden flex border border-slate-700/80 relative shadow-inner">
+                        <div className={`h-full ${result.stageNum >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-transparent'} w-1/4 transition-all duration-1000`}></div>
+                        <div className={`h-full ${result.stageNum >= 1 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-transparent'} w-1/4 transition-all duration-1000 border-l border-slate-900`}></div>
+                        <div className={`h-full ${result.stageNum >= 2 ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]' : 'bg-transparent'} w-1/4 transition-all duration-1000 border-l border-slate-900`}></div>
+                        <div className={`h-full ${result.stageNum >= 3 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-transparent'} w-1/4 transition-all duration-1000 border-l border-slate-900`}></div>
+                      </div>
+                      <div className="w-full flex justify-between text-[11px] sm:text-[12px] font-bold text-slate-500 mt-2 px-1 tracking-widest">
+                        <span>안전</span>
+                        <span>주의</span>
+                        <span>경고</span>
+                        <span>위험</span>
+                      </div>
+                    </div>
+
+                    <div className="px-5 mb-8 relative z-10">
+                      <div className={`p-6 sm:p-7 rounded-[1.5rem] bg-slate-900/80 border border-slate-800 border-l-[4px] ${result.color.replace('text', 'border')} relative shadow-lg`}>
+                        <p className="text-white leading-[1.7] text-[1rem] sm:text-[1.05rem] font-normal break-keep text-left">
+                          {result.desc}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="px-5 relative z-10">
+                      <div className="bg-slate-900/60 rounded-[1.5rem] p-6 sm:p-7 border border-slate-800 relative shadow-xl">
+
+                        <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-4 relative z-10">
+                          <h3 className="font-black text-white text-[1.25rem] tracking-tight">처방전: 생활 수칙 가이드</h3>
+                          <span className="ml-auto text-[11px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-md font-bold">
+                            {ageGroup === '60+' ? '시니어 타겟팅' : `${ageGroup}세대 맞춤`}
+                          </span>
+                        </div>
+
+                        <ul className="space-y-3 sm:space-y-4 relative z-10">
+                          {result.tips.map((tip, idx) => {
+                            const splitIdx = tip.indexOf(']');
+                            const title = tip.substring(0, splitIdx + 1) || `[Rule 0${idx + 1}]`;
+                            const desc = tip.substring(splitIdx + 1) || tip;
+                            return (
+                              <li key={idx} className="flex gap-3 items-start bg-slate-950/40 rounded-xl p-4 border border-slate-800/80">
+                                <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 mt-0.5 ${result.color}`} strokeWidth={2.5} />
+                                <div className="flex flex-col">
+                                  <span className={`text-white font-bold mb-1 text-[1rem] sm:text-[1.05rem] tracking-tight`}>{title}</span>
+                                  <span className="break-keep leading-relaxed text-slate-400 text-[0.9rem] sm:text-[0.95rem]">{desc}</span>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="mt-12 flex flex-col items-center justify-center gap-2 pb-2 opacity-30 z-10 relative">
+                      <ShieldCheck className="w-6 h-6 text-slate-500" />
+                      <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Health Matrix Algorithm 24</p>
+                    </div>
+
+                  </div>
+
+                  {/* 하단 고정 버튼 (UI 앱 느낌 모바일 최적화 높이) */}
+                  <div className="fixed bottom-0 left-0 right-0 max-w-[440px] mx-auto bg-slate-900/90 backdrop-blur-md border-t border-slate-800 p-4 sm:p-5 flex justify-center gap-3 z-50">
+                    <div className="w-full flex gap-3">
+                      <button onClick={resetQuiz} className="h-[56px] sm:h-[60px] w-[56px] sm:w-[64px] bg-slate-800 border border-slate-700 text-slate-300 rounded-[1.2rem] flex flex-shrink-0 items-center justify-center hover:bg-slate-700 active:scale-95 transition-all">
+                        <ArrowLeft size={24} />
+                      </button>
+                      <button
+                        onClick={captureAndDownload}
+                        disabled={isDownloading}
+                        className={`flex-1 h-[56px] sm:h-[60px] text-slate-900 font-black text-[1.1rem] sm:text-[1.2rem] rounded-[1.2rem] flex justify-center items-center gap-2 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.15)]
+                          ${isDownloading ? 'bg-slate-500 scale-[0.98] border-none' : 'bg-white active:scale-[0.97]'}`}
+                      >
+                        {isDownloading ? (
+                          <React.Fragment><Activity size={22} className="animate-spin text-slate-900" /> 저장 처리 중...</React.Fragment>
+                        ) : (
+                          <React.Fragment><Download size={24} className="text-slate-900" /> 결과 리포트 저장</React.Fragment>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* !!! 인앱 브라우저 (카카오톡 대응 캡처 모달) !!! */}
+                  {capturedImageUrl && (
+                    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-6 animate-fade-in backdrop-blur-sm">
+                      <div className="w-full max-w-[360px] bg-slate-900 rounded-[2rem] border border-slate-700 overflow-hidden shadow-2xl flex flex-col items-center relative">
+                        <button onClick={() => setCapturedImageUrl(null)} className="absolute top-4 right-4 w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 z-10 border border-slate-700">
+                          <XIcon size={20} />
+                        </button>
+
+                        <div className="bg-emerald-500/10 w-full p-6 text-center border-b border-emerald-500/20">
+                          <h4 className="text-emerald-400 font-black text-[1.2rem] mb-2">이미지가 생성되었습니다</h4>
+                          <p className="text-slate-300 text-[0.9rem] leading-snug break-keep">
+                            아래 진단 이미지를 <b className="text-white text-[1rem]">꾸욱 누르고 있으면 (2초간)</b> 핸드폰 사진첩에 저장할 수 있습니다.
+                          </p>
+                        </div>
+
+                        <div className="p-4 w-full bg-[#020617] h-[50vh] overflow-y-auto hide-scrollbar custom-scrollbar rounded-b-[2rem]">
+                          <img src={capturedImageUrl} alt="진단결과 리포트" className="w-full h-auto rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.8)] border border-slate-800 select-all" />
+                        </div>
+
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none w-[90%] pointer-events-none">
+                          <div className="bg-slate-800/90 py-2.5 px-4 rounded-full text-center text-xs text-emerald-400 font-bold border border-emerald-500/30">
+                            꾹 눌러서 사진 앱에 저장! 👆
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </div>
+          </div>
+        </React.Fragment>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>
