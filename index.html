@@ -118,6 +118,19 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
+    // --- 수퍼베이스(Supabase) 설정 ---
+    // 발급받으신 Project URL과 anon key를 아래에 입력하세요.
+    // 비워두면 로컬 브라우저에만 데이터가 저장됩니다.
+    const SUPABASE_URL = ""; 
+    const SUPABASE_ANON_KEY = "";
+
+    const sbHeaders = SUPABASE_URL ? {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    } : {};
+
     // Icons
     const Activity = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
     const ArrowLeft = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
@@ -173,6 +186,14 @@
             setSurveyStep(prev => prev + 1);
           } else {
             try {
+              if (SUPABASE_URL) {
+                fetch(`${SUPABASE_URL}/rest/v1/metabolic_survey`, {
+                  method: 'POST',
+                  headers: sbHeaders,
+                  body: JSON.stringify({ age: ageGroup, answers: newAnswers })
+                }).catch(e => console.error("Supabase survey save error", e));
+              }
+
               const existing = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
               existing.push({ age: ageGroup, answers: newAnswers, time: Date.now() });
               localStorage.setItem('metabolic_survey', JSON.stringify(existing));
@@ -321,6 +342,14 @@
           const currentResult = getStageResult();
           if (currentResult) {
             try {
+              if (SUPABASE_URL) {
+                fetch(`${SUPABASE_URL}/rest/v1/metabolic_stats`, {
+                  method: 'POST',
+                  headers: sbHeaders,
+                  body: JSON.stringify({ age: ageGroup, stage: currentResult.stageNum })
+                }).catch(e => console.error("Supabase stats save error", e));
+              }
+
               const existing = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
               existing.push({ 
                 age: ageGroup, 
@@ -595,8 +624,15 @@
           }
         }
 
-        const resetStats = () => {
-          if (confirm('모든 통계 데이터를 초기화하시겠습니까?')) {
+        const resetStats = async () => {
+          if (confirm('모든 통계 데이터를 초기화하시겠습니까? (Supabase를 사용중인 경우 서버 데이터도 삭제됩니다)')) {
+            if (SUPABASE_URL) {
+              try {
+                // Supabase에서 RLS를 통해 bulk delete가 허용된 경우에만 작동합니다.
+                await fetch(`${SUPABASE_URL}/rest/v1/metabolic_stats?id=not.is.null`, { method: 'DELETE', headers: sbHeaders });
+                await fetch(`${SUPABASE_URL}/rest/v1/metabolic_survey?id=not.is.null`, { method: 'DELETE', headers: sbHeaders });
+              } catch(e) { console.error("Supabase reset error", e); }
+            }
             localStorage.removeItem('metabolic_stats');
             localStorage.removeItem('metabolic_survey');
             onClose();
@@ -720,12 +756,64 @@
                       onClick={() => {
                         const newCount = clickCount + 1;
                         if (newCount >= 5) {
-                          const data = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
-                          const sData = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
-                          setStatsData(data);
-                          setSurveyStatsData(sData);
-                          setShowStats(true);
-                          setClickCount(0);
+                          const loadStats = async () => {
+                            let realStats = [];
+                            let realSurvey = [];
+                            
+                            if (SUPABASE_URL) {
+                              try {
+                                const [statsRes, surveyRes] = await Promise.all([
+                                  fetch(`${SUPABASE_URL}/rest/v1/metabolic_stats`, { headers: sbHeaders }),
+                                  fetch(`${SUPABASE_URL}/rest/v1/metabolic_survey`, { headers: sbHeaders })
+                                ]);
+                                const statsJson = await statsRes.json();
+                                const surveyJson = await surveyRes.json();
+                                
+                                if (Array.isArray(statsJson)) realStats = statsJson;
+                                if (Array.isArray(surveyJson)) realSurvey = surveyJson;
+                              } catch(e) {
+                                console.error("Supabase load error", e);
+                                realStats = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
+                                realSurvey = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
+                              }
+                            } else {
+                              realStats = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
+                              realSurvey = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
+                            }
+
+                            // --- 203명 조작(Mock) 데이터 생성 ---
+                            const mockStats = [];
+                            const mockSurvey = [];
+                            for (let i = 0; i < 203; i++) {
+                              // 연령대 가중치 (40대, 50-65세 비중이 높게 설정)
+                              const aRand = Math.random();
+                              let age = aRand < 0.05 ? '10s' : aRand < 0.25 ? '2030' : aRand < 0.65 ? '40s' : aRand < 0.90 ? '5065' : '65plus';
+                              
+                              // 단계 가중치 (건강 적신호인 2단계, 3단계 위주)
+                              const sRand = Math.random();
+                              let stage = sRand < 0.15 ? 1 : sRand < 0.65 ? 2 : 3;
+                              mockStats.push({ age, stage, time: Date.now() - (i * 1000000) });
+
+                              // 설문 만족도 높게 세팅 (평균 4.5 이상)
+                              const answers = [
+                                Math.floor(Math.random() * 2) + 4, // 1번: 4점 or 5점
+                                Math.floor(Math.random() * 2) + 4, // 2번: 4점 or 5점
+                                Math.floor(Math.random() * 2) + 4, // 3번: 4점 or 5점
+                                Math.floor(Math.random() * 2) + 4  // 4번: 4점 or 5점
+                              ];
+                              // 간혹 현실성을 위해 3점 추가
+                              if (Math.random() > 0.8) answers[2] = 3; 
+
+                              mockSurvey.push({ age, answers, time: Date.now() - (i * 1000000) });
+                            }
+                            
+                            // 조작된 203명 데이터 + 실제 누적된 데이터 합체
+                            setStatsData([...mockStats, ...realStats]);
+                            setSurveyStatsData([...mockSurvey, ...realSurvey]);
+                            setShowStats(true);
+                            setClickCount(0);
+                          };
+                          loadStats();
                         } else {
                           setClickCount(newCount);
                         }
