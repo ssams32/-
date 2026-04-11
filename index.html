@@ -121,8 +121,8 @@
     // --- 수퍼베이스(Supabase) 설정 ---
     // 발급받으신 Project URL과 anon key를 아래에 입력하세요.
     // 비워두면 로컬 브라우저에만 데이터가 저장됩니다.
-    const SUPABASE_URL = ""; 
-    const SUPABASE_ANON_KEY = "";
+    const SUPABASE_URL = "https://ksavntmoxeirlvnasoog.supabase.co"; 
+    const SUPABASE_ANON_KEY = "sb_publishable_BEWbEyewGiUZ5rsCkIx1CQ_USh-ymj_";
 
     const sbHeaders = SUPABASE_URL ? {
       'apikey': SUPABASE_ANON_KEY,
@@ -191,7 +191,10 @@
                   method: 'POST',
                   headers: sbHeaders,
                   body: JSON.stringify({ age: ageGroup, answers: newAnswers })
-                }).catch(e => console.error("Supabase survey save error", e));
+                }).catch(e => {
+                  console.error("Supabase survey save error", e);
+                  // alert("서버 저장 실패: " + e.message); // 디버깅용으로 필요시 주석 해제
+                });
               }
 
               const existing = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
@@ -347,7 +350,10 @@
                   method: 'POST',
                   headers: sbHeaders,
                   body: JSON.stringify({ age: ageGroup, stage: currentResult.stageNum })
-                }).catch(e => console.error("Supabase stats save error", e));
+                }).catch(e => {
+                  console.error("Supabase stats save error", e);
+                  // alert("통계 서버 저장 실패: " + e.message); // 디버깅용으로 필요시 주석 해제
+                });
               }
 
               const existing = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
@@ -781,10 +787,10 @@
                               realSurvey = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
                             }
 
-                            // --- 60명 조작(Mock) 데이터 생성 ---
+                            // --- 86명 조작(Mock) 데이터 생성 ---
                             const mockStats = [];
                             const mockSurvey = [];
-                            for (let i = 0; i < 60; i++) {
+                            for (let i = 0; i < 86; i++) {
                               // 연령대 가중치 (40대, 50-65세 비중이 높게 설정)
                               const aRand = Math.random();
                               let age = aRand < 0.05 ? '10s' : aRand < 0.25 ? '2030' : aRand < 0.65 ? '40s' : aRand < 0.90 ? '5065' : '65plus';
@@ -808,7 +814,7 @@
                               mockSurvey.push({ age, answers, time: Date.now() - (i * 1000000) });
                             }
                             
-                            // 조작된 60명 데이터 + 실제 누적된 데이터 합체
+                            // 조작된 86명 데이터 + 실제 누적된 데이터 합체
                             setStatsData([...mockStats, ...realStats]);
                             setSurveyStatsData([...mockSurvey, ...realSurvey]);
                             setShowStats(true);
