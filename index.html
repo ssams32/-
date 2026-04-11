@@ -152,6 +152,36 @@
       const [clickCount, setClickCount] = useState(0);
       const [showStats, setShowStats] = useState(false);
       const [statsData, setStatsData] = useState([]);
+      const [surveyStatsData, setSurveyStatsData] = useState([]);
+      const [surveyStep, setSurveyStep] = useState(0);
+      const [surveyAnswers, setSurveyAnswers] = useState([]);
+      const [isSurveyCompleted, setIsSurveyCompleted] = useState(false);
+
+      const surveyQuestions = [
+        "1. 평소의 생활 습관과 건강 상태를 점검하는 데 유익했나요?",
+        "2. 맞춤 행동 강령과 슈퍼푸드 정보가 유용했나요?",
+        "3. 이 테스트를 주변 지인에게 추천하고 싶으신가요?",
+        "4. 전반적인 서비스 이용 만족도는 어떠신가요?"
+      ];
+
+      const handleSurveyAnswer = (score) => {
+        const newAnswers = [...surveyAnswers, score];
+        setSurveyAnswers(newAnswers);
+        
+        setTimeout(() => {
+          if (surveyStep < surveyQuestions.length - 1) {
+            setSurveyStep(prev => prev + 1);
+          } else {
+            try {
+              const existing = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
+              existing.push({ age: ageGroup, answers: newAnswers, time: Date.now() });
+              localStorage.setItem('metabolic_survey', JSON.stringify(existing));
+            } catch(e) {}
+            setIsSurveyCompleted(true);
+            setStep('surveyComplete');
+          }
+        }, 150);
+      };
 
       useEffect(() => {
         // Preload all assets
@@ -316,6 +346,7 @@
 
       const resetQuiz = () => {
         setStep('intro'); setAgeGroup(null); setCurrentIdx(0); setSelectedAnswers([]); setCapturedImageUrl(null);
+        setIsSurveyCompleted(false); setSurveyAnswers([]); setSurveyStep(0);
       };
 
       const captureAndDownload = async () => {
@@ -541,7 +572,7 @@
         return stageInfo;
       };
 
-      const StatsDashboard = ({ data, onClose }) => {
+      const StatsDashboard = ({ data, surveyData = [], onClose }) => {
         const total = data.length;
         const ages = { '10s': 0, '2030': 0, '40s': 0, '5065': 0, '65plus': 0 };
         const stages = { 1: 0, 2: 0, 3: 0 };
@@ -551,9 +582,23 @@
           if (stages[d.stage] !== undefined) stages[d.stage]++;
         });
 
+        const surveyTotal = surveyData.length;
+        const avgScores = [0, 0, 0, 0];
+        if (surveyTotal > 0) {
+          surveyData.forEach(s => {
+            s.answers.forEach((ans, i) => {
+               if(i < 4) avgScores[i] += ans;
+            });
+          });
+          for(let i=0; i<4; i++) {
+             avgScores[i] = (avgScores[i] / surveyTotal).toFixed(1);
+          }
+        }
+
         const resetStats = () => {
           if (confirm('모든 통계 데이터를 초기화하시겠습니까?')) {
             localStorage.removeItem('metabolic_stats');
+            localStorage.removeItem('metabolic_survey');
             onClose();
           }
         };
@@ -611,6 +656,38 @@
                 <StatBar label="2단계 (경계)" count={stages[2]} total={total} color="bg-apple-orange" />
                 <StatBar label="3단계 (위험)" count={stages[3]} total={total} color="bg-apple-red" />
               </section>
+
+              <section>
+                <h3 className="text-apple-gray text-[0.7rem] font-bold mb-6 tracking-widest uppercase">만족도 조사 평균 ({surveyTotal}명)</h3>
+                {surveyTotal > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-[0.95rem]">
+                      <span className="text-apple-black font-medium">1. 습관 점검 유익성</span>
+                      <span className="font-bold text-apple-black">{avgScores[0]}점 <span className="text-apple-gray font-normal text-xs">/ 5.0</span></span>
+                    </div>
+                    <div className="flex justify-between items-center text-[0.95rem]">
+                      <span className="text-apple-black font-medium">2. 맞춤 정보 유용성</span>
+                      <span className="font-bold text-apple-black">{avgScores[1]}점 <span className="text-apple-gray font-normal text-xs">/ 5.0</span></span>
+                    </div>
+                    <div className="flex justify-between items-center text-[0.95rem]">
+                      <span className="text-apple-black font-medium">3. 지인 추천 의향</span>
+                      <span className="font-bold text-apple-black">{avgScores[2]}점 <span className="text-apple-gray font-normal text-xs">/ 5.0</span></span>
+                    </div>
+                    <div className="flex justify-between items-center text-[0.95rem]">
+                      <span className="text-apple-black font-medium">4. 전반적 만족도</span>
+                      <span className="font-bold text-apple-black">{avgScores[3]}점 <span className="text-apple-gray font-normal text-xs">/ 5.0</span></span>
+                    </div>
+                    <div className="mt-6 p-5 rounded-[24px] bg-apple-bg flex justify-between items-center border border-apple-border">
+                      <span className="font-bold text-apple-black text-[0.95rem]">총 평균 만족도</span>
+                      <span className="font-black text-apple-blue text-[1.4rem]">
+                        {((parseFloat(avgScores[0]) + parseFloat(avgScores[1]) + parseFloat(avgScores[2]) + parseFloat(avgScores[3])) / 4).toFixed(1)}점
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-apple-gray text-sm font-medium">아직 만족도 조사에 참여한 기록이 없습니다.</p>
+                )}
+              </section>
             </div>
 
             <button 
@@ -644,7 +721,9 @@
                         const newCount = clickCount + 1;
                         if (newCount >= 5) {
                           const data = JSON.parse(localStorage.getItem('metabolic_stats') || '[]');
+                          const sData = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
                           setStatsData(data);
+                          setSurveyStatsData(sData);
                           setShowStats(true);
                           setClickCount(0);
                         } else {
@@ -800,6 +879,32 @@
                     </div>
                   </div>
 
+                  {/* Survey Banner */}
+                  {!isSurveyCompleted ? (
+                    <div className="px-6 pb-6 mt-6">
+                      <div className="p-7 rounded-[32px] bg-apple-blue/10 border border-apple-blue/20 flex flex-col items-center text-center shadow-sm">
+                        <h3 className="text-[1.2rem] font-black text-apple-black mb-2 tracking-tight">잠깐! 만족도 조사에 참여해주세요</h3>
+                        <p className="text-apple-gray text-[0.95rem] mb-6 font-medium leading-relaxed break-keep">
+                          서비스 개선을 위해 1분만 시간을 내어<br/>소중한 의견을 들려주세요.
+                        </p>
+                        <button 
+                          onClick={() => { setStep('survey'); setSurveyAnswers([]); setSurveyStep(0); }}
+                          className="w-full py-4 bg-apple-blue text-white rounded-[24px] font-bold text-[1.1rem] active-scale shadow-md"
+                        >
+                          만족도 조사 시작하기
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-6 pb-6 mt-6">
+                      <div className="p-6 rounded-[32px] bg-white border border-apple-border flex flex-col items-center justify-center text-center shadow-sm">
+                        <CheckCircle2 size={32} className="text-apple-green mb-2" />
+                        <h3 className="text-[1.1rem] font-bold text-apple-black tracking-tight">만족도 조사 참여 완료</h3>
+                        <p className="text-apple-gray text-[0.9rem] font-medium mt-1">소중한 의견 감사합니다.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Fixed Bottom Action */}
                   <div className="fixed bottom-0 left-0 right-0 max-w-[440px] mx-auto p-6 bg-gradient-to-t from-apple-bg via-apple-bg to-transparent flex gap-3">
                     <button onClick={resetQuiz} className="w-14 h-14 bg-white border border-apple-border rounded-full flex items-center justify-center active-scale shadow-sm"><ArrowLeft className="text-apple-black" size={20} /></button>
@@ -826,8 +931,69 @@
                 </div>
               )}
 
-              {/* --- 6. ADMIN STATS --- */}
-              {showStats && <StatsDashboard data={statsData} onClose={() => setShowStats(false)} />}
+              {/* --- 6. SURVEY --- */}
+              {step === 'survey' && (
+                <div className="flex flex-col h-full px-6 py-10 bg-white">
+                  <div className="flex items-center justify-between mb-16">
+                    <button onClick={() => setStep('result')} className="text-apple-black w-10 h-10 flex items-center -ml-2 active-scale">
+                      <XIcon size={24} />
+                    </button>
+                    <div className="flex-1 px-4">
+                      <div className="h-[6px] w-full bg-apple-border rounded-full overflow-hidden">
+                        <div className="h-full bg-apple-blue transition-all duration-300 ease-apple" style={{ width: `${((surveyStep + 1) / surveyQuestions.length) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <span className="text-apple-black font-bold text-sm tracking-tighter">{surveyStep + 1} <span className="text-apple-gray">/ {surveyQuestions.length}</span></span>
+                  </div>
+
+                  <div className="flex-1 flex flex-col items-center mt-4">
+                    <h2 className="text-[1.6rem] font-black text-apple-black leading-snug break-keep text-center px-4 tracking-tight mb-16 w-full animate-fade-up" key={surveyStep}>
+                      {surveyQuestions[surveyStep]}
+                    </h2>
+                    
+                    <div className="flex justify-between items-center w-full max-w-[340px] px-2 animate-fade-up" key={`opts-${surveyStep}`}>
+                      {[
+                        { score: 1, label: '매우 불만족', icon: '😡' },
+                        { score: 2, label: '불만족', icon: '☹️' },
+                        { score: 3, label: '보통', icon: '😐' },
+                        { score: 4, label: '만족', icon: '🙂' },
+                        { score: 5, label: '매우 만족', icon: '😍' }
+                      ].map(item => (
+                        <button 
+                          key={item.score}
+                          onClick={() => handleSurveyAnswer(item.score)}
+                          className="flex flex-col items-center gap-3 active-scale transition-transform"
+                        >
+                          <span className="text-5xl drop-shadow-sm hover:scale-110 hover:-translate-y-1 transition-all">{item.icon}</span>
+                          <span className="text-[0.75rem] font-bold text-apple-gray whitespace-nowrap">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* --- 7. SURVEY COMPLETE --- */}
+              {step === 'surveyComplete' && (
+                <div className="flex flex-col h-full items-center justify-center px-6 text-center animate-fade-up bg-white">
+                  <div className="w-24 h-24 bg-apple-green text-white rounded-full flex items-center justify-center mb-8 shadow-xl">
+                    <CheckCircle2 size={48} />
+                  </div>
+                  <h2 className="text-[2.2rem] font-black text-apple-black mb-4 tracking-tight leading-tight">참여해주셔서<br/>감사합니다</h2>
+                  <p className="text-apple-gray text-[1.1rem] font-medium mb-16 break-keep px-4 leading-relaxed">
+                    전달해주신 소중한 의견은<br/>더 나은 서비스를 만드는 데 활용됩니다.
+                  </p>
+                  <button 
+                    onClick={() => setStep('result')}
+                    className="w-full max-w-[300px] h-16 bg-apple-black text-white rounded-[24px] font-bold text-[1.15rem] active-scale shadow-lg"
+                  >
+                    결과 화면으로 돌아가기
+                  </button>
+                </div>
+              )}
+
+              {/* --- 8. ADMIN STATS --- */}
+              {showStats && <StatsDashboard data={statsData} surveyData={surveyStatsData} onClose={() => setShowStats(false)} />}
 
             </div>
           </div>
