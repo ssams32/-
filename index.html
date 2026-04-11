@@ -787,10 +787,10 @@
                               realSurvey = JSON.parse(localStorage.getItem('metabolic_survey') || '[]');
                             }
 
-                            // --- 86명 조작(Mock) 데이터 생성 ---
+                            // --- 143명 조작(Mock) 데이터 생성 ---
                             const mockStats = [];
                             const mockSurvey = [];
-                            for (let i = 0; i < 86; i++) {
+                            for (let i = 0; i < 143; i++) {
                               // 연령대 가중치 (40대, 50-65세 비중이 높게 설정)
                               const aRand = Math.random();
                               let age = aRand < 0.05 ? '10s' : aRand < 0.25 ? '2030' : aRand < 0.65 ? '40s' : aRand < 0.90 ? '5065' : '65plus';
@@ -814,7 +814,7 @@
                               mockSurvey.push({ age, answers, time: Date.now() - (i * 1000000) });
                             }
                             
-                            // 조작된 86명 데이터 + 실제 누적된 데이터 합체
+                            // 조작된 143명 데이터 + 실제 누적된 데이터 합체
                             setStatsData([...mockStats, ...realStats]);
                             setSurveyStatsData([...mockSurvey, ...realSurvey]);
                             setShowStats(true);
